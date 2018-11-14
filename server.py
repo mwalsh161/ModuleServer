@@ -208,13 +208,14 @@ def main(server_name,config_path,server_addr='localhost',server_port=36577,logle
     logger.addHandler(h)
     logger.setLevel(LOGLEVEL)
     sock = launchServer(server_addr,server_port)
+    client_addr = (None,None)
     try:
         while True:
             try: # Main try block
                 try:
                     connection, client_addr = sock.accept()
                     connection.setblocking(0)
-                    logger.info('New Client: %s'%(client_addr[0]))
+                    logger.debug('New Client: %s'%(client_addr[0]))
                     handleClient(connection,client_addr)
                 except IOError: # Most likely timeout error (every second)
                     # Check config file for changes
@@ -228,7 +229,7 @@ def main(server_name,config_path,server_addr='localhost',server_port=36577,logle
             except KeyboardInterrupt:
                 raise
             except:
-                logger.critical('Unhandled error in main loop',exc_info=True)
+                logger.critical('Unhandled error in main loop (client: %s)'%client_addr[0],exc_info=True)
     except (KeyboardInterrupt,SystemExit):
         logger.critical('Shutting down')
     finally:

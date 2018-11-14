@@ -38,12 +38,12 @@ def handleClient(client):
             if not msg['keep_alive']:
                 break
     except ModuleException:
-        logger.exception('Error from module')
+        logger.exception('Error from module (client: %s)'%addr[0])
         utils.send(client,error=True)
     except IOError:
-        logger.exception('Client lost')
+        logger.exception('Client lost (client: %s)'%addr[0])
     except:
-        logger.exception('Unhandled error in worker\'s client loop')
+        logger.exception('Unhandled error in worker\'s client loop (client: %s)'%addr[0])
         utils.send(client,error=True)
     finally:
         logger.debug('Closed client: %s'%addr[0])
