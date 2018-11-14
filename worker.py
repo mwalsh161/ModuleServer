@@ -107,7 +107,7 @@ def main(name,config,queue,log_queue,loglevel):
                 except (Queue.Empty,NoINSTANCE):
                     # Effectively limit to on timeouts to not interfere
                     if utils.modified(PATH) or INSTANCE is None:
-                        logger.debug('Reloading module and instance')
+                        logger.info('Reloading module and instance')
                         del(INSTANCE)
                         INSTANCE = [] # Used to signify error state in dispatch
                         importlib.reload(MODULE)
