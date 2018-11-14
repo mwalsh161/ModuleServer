@@ -19,6 +19,8 @@ logger = None
 
 class NoINSTANCE(Exception):
     pass
+class ModuleException(Exception):
+    pass
 
 def handleClient(client):
     [client,addr] = client
@@ -35,10 +37,13 @@ def handleClient(client):
             utils.send(client,result)
             if not msg['keep_alive']:
                 break
+    except ModuleException:
+        logger.exception('Error from module')
+        utils.send(client,error=True)
     except IOError:
         logger.exception('Client lost')
     except:
-        logger.exception('Error in client loop')
+        logger.exception('Unhandled error in worker\'s client loop')
         utils.send(client,error=True)
     finally:
         logger.debug('Closed client: %s'%addr[0])
@@ -49,13 +54,18 @@ def dispatch(client,addr,function,args,**kwargs):
     # Allow friendly disconnections
     if function is None:
         raise IOError('Client left gracefully') # IOError will not reply to client
-    if CONFIG[2]:
-        logger.debug('Using INSTANCE dispatcher.')
-        result = getattr(INSTANCE,CONFIG[2])(addr[0],function,*args)
-    else:
-        if function not in dir(INSTANCE): raise utils.BadRequest('function not found in INSTANCE (case matters)')
-        logger.debug('Using INSTANCE direct call.')
-        result = getattr(INSTANCE,function)(*args)
+    try:
+        if CONFIG[2]:
+            logger.debug('Using INSTANCE dispatcher.')
+            result = getattr(INSTANCE,CONFIG[2])(addr[0],function,*args)
+        else:
+            if function not in dir(INSTANCE): raise utils.BadRequest('function not found in INSTANCE (case matters)')
+            logger.debug('Using INSTANCE direct call.')
+            result = getattr(INSTANCE,function)(*args)
+    except utils.BadRequest as err:
+        raise
+    except Exception as err: # Must be from the module, so wrap it to always handle
+        raise ModuleException() from err
     return result
 
 def main(name,config,queue,log_queue,loglevel):
