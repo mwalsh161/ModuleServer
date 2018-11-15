@@ -108,7 +108,11 @@ def main(name,config,queue,log_queue,loglevel):
                     # Effectively limit to on timeouts to not interfere
                     if utils.modified(PATH) or INSTANCE is None:
                         logger.info('Reloading module and instance')
-                        del(INSTANCE)
+                        try:
+                            INSTANCE.__exit__(None,None,None)
+                            logger.debug('Exiting INSTANCE instance')
+                        except:
+                            logger.debug('INSTANCE instance has no __exit__')
                         INSTANCE = [] # Used to signify error state in dispatch
                         importlib.reload(MODULE)
                         INSTANCE = getattr(MODULE,CONFIG[1])()
