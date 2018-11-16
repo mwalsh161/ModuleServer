@@ -1,34 +1,40 @@
 # Built-in modules
 import sys, os, time, json, logging, socket, traceback
+import numpy as np
 from multiprocessing import Process, Queue
 from queue import Empty as QueueEmpty
 # Custom modules
 from . import utils, loggingProc, worker
 
-## Workers and server will send responses that are urlencoded(plus) json strings:
-##   {"response":RESPONSE,"error":ERROR_STATUS,"traceback":traceback.format_exc()}
-##      Where ERROR_STATUS is True/False and RESPONSE is from requested MODULE
-## All communication strings terminated by '\n'
-##
+help_text = \
+'''_help can be called as "name" in the server hello for available modules. \
+Likewise, _help can be called in request to workers as "function" fields \
+(note it is still necessary to include other two fields eventhough they will be ignored).
 
-## Client is expected to send urlencoded(plus) json strings with fields:
-##   Server hello:
-##   {"name":<name as str>}
-##      Server will send ack if successfully passed to worker queue
-##   Then the request for the worker:
-##   {
-##      "function":<function in "name" as str>,
-##      "args":[<arg0 as any type>,<arg1 as any type>,...],
-##      "keep_alive":<True/False>
-##   }
-##   Everything (including keep_alive) has 1 second timeout after server sends reply
-##   Upon error in function, connection is closed regardless of keep_alive flag
-##   Clients can also send a special request to nicely leave (e.g. no server timeout)
-##   {
-##      'function':None,
-##      'args':[],
-##      'keep_alive':False
-##   }
+Workers and server will send responses that are urlencoded(plus) json strings:
+  {"response":RESPONSE,"error":ERROR_STATUS,"traceback":traceback.format_exc()}
+     Where ERROR_STATUS is True/False and RESPONSE is from requested MODULE
+All communication strings terminated by '\\n'
+
+
+Client is expected to send urlencoded(plus) json strings with fields:
+  Server hello:
+  {"name":<name as str>}
+     Server will send ack if successfully passed to worker queue
+  Then the request for the worker:
+  {
+     "function":<function in "name" as str>,
+     "args":[<arg0 as any type>,<arg1 as any type>,...],
+     "keep_alive":<True/False>
+  }
+  Everything (including keep_alive) has 1 second timeout after server sends reply.
+  Upon error in function, connection is closed regardless of keep_alive flag.
+  Clients can also send a special request to nicely leave (e.g. no server timeout).
+  {
+     'function':None,
+     'args':[],
+     'keep_alive':False
+  }'''
 
 ## CONFIG: see example config entry
 ##   If config specifies dispatch method, the first two args will always be 
@@ -57,6 +63,8 @@ from . import utils, loggingProc, worker
 ##   - They will handle the rest of the client request, and all communication to the client
 ##   - If the hardware module changes, they will reload the module and instance
 ##   - If None type received instead of client, signal to terminate
+##   - _help is a special request that modules can overload in module namespace (not instance), but the
+##       default will be a simple list of methods in the instance, or none if dispatcher is used
 ## Server aspect:
 ##   - Monitor for a connected client, perform first read to know which worker queue to put in
 ##   - Respond with ack
@@ -172,8 +180,12 @@ def handleClient(connection,addr):
     # No finally block here, because upon getting on queue, dont close!
     try:
         msg = utils.recv(connection,validate_exists=['name'])
-        if msg['name'] is None: # "ping request"
+        if msg['name'] is None or msg['name'] is np.nan: # "ping request"
             utils.send(connection,addr)
+            connection.close()
+        elif msg['name'] == '_help':
+            resp = 'Available modules: %s\n\n%s'%(', '.join(modules),help_text)
+            utils.send(connection,resp)
             connection.close()
         else:
             if msg['name'] in modules:

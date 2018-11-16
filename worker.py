@@ -1,4 +1,4 @@
-import sys, os, traceback, time, logging, select
+import sys, os, traceback, time, logging, select, inspect
 import urllib.parse as urllib
 import importlib
 import queue as Queue
@@ -49,13 +49,28 @@ def handleClient(client):
         logger.debug('Closed client: %s'%addr[0])
         client.close()
 
+def _help():
+    help_text = ['Note, you can only supply positional arguments (not keyword arguments)']
+    if CONFIG[2]: # Dispatcher method...no useful help from it
+        help_text.append('This module uses a dispatch method, so cant generate auto help (module should supply its own _help function.')
+    else:
+        for f in (a for a in dir(INSTANCE) if a[0]!='_'):
+            try:
+                help_text.append(inspect.getsource(getattr(INSTANCE,f)) \
+                                        .strip().split('\n')[0][4:-1] \
+                                        .replace('self,','').replace('self',''))
+            except: pass # Probably not a function
+    return '\n'.join(help_text)
+
 def dispatch(client,addr,function,args,**kwargs):
     # **kwargs is to allow direct kwarg passing of msg
     # Allow friendly disconnections
     if function is None:
         raise IOError('Client left gracefully') # IOError will not reply to client
     try:
-        if CONFIG[2]:
+        if function == '_help':
+            result = getattr(MODULE,'_help',_help)()
+        elif CONFIG[2]:
             logger.debug('Using INSTANCE dispatcher.')
             result = getattr(INSTANCE,CONFIG[2])(addr[0],function,*args)
         else:
@@ -129,3 +144,6 @@ def main(name,config,queue,log_queue,loglevel):
             logger.debug('Exiting INSTANCE instance')
         except:
             logger.debug('INSTANCE instance has no __exit__')
+
+if __name__ == '__main__':
+    print(_help())
