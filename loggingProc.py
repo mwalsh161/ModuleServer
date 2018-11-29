@@ -9,20 +9,10 @@ class LogJSONFormatter(logging.Formatter):
 
     def format(self, record):
         data = {}
-        if 'exc_info' in self.include:
-            if record.exc_info:
-                if record.exc_info[0]:
-                    data['exc_info'] = {'type':record.exc_info[0].__name__,
-                                        'msg':str(record.exc_info[1]),
-                                        'stack':traceback.extract_tb(record.exc_info[2])}
-                else:
-                    data['exc_info'] = None
-            else:
-                data['exc_info'] = None
         if record.args:
             data['args'] = record.args
         for thing in self.include:
-            if 'exc_info' != thing and 'message' != thing:
+            if 'message' != thing:
                 data[thing] = getattr(record,thing)
         return json.dumps(data)
 
@@ -51,7 +41,13 @@ class QueueHandler(logging.Handler):
             ei = record.exc_info
             if ei:
                 dummy = self.format(record) # just to get traceback text into record.exc_text
-                record.exc_info = None  # not needed any more
+                tb = traceback.extract_tb(record.exc_info[2])
+                tb = [{'filename':t.filename,
+                       'lineno':t.lineno,
+                       'name':t.name} for t in tb]
+                record.exc_info = {'type':record.exc_info[0].__name__,
+                                   'msg':str(record.exc_info[1]),
+                                   'stack':tb}
             self.queue.put_nowait(record)
         except (KeyboardInterrupt, SystemExit):
             raise
