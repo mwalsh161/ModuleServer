@@ -11,6 +11,8 @@ help_text = \
 Likewise, _help can be called in request to workers as "function" fields \
 (note it is still necessary to include other two fields eventhough they will be ignored).
 
+_ping (or null) can be issued as well for "name" which will result in an echo of the client's IP.
+
 Workers and server will send responses that are urlencoded(plus) json strings:
   {"response":RESPONSE,"error":ERROR_STATUS,"traceback":traceback.format_exc()}
      Where ERROR_STATUS is True/False and RESPONSE is from requested MODULE
@@ -180,7 +182,7 @@ def handleClient(connection,addr):
     # No finally block here, because upon getting on queue, dont close!
     try:
         msg = utils.recv(connection,validate_exists=['name'])
-        if msg['name'] is None or msg['name'] is np.nan: # "ping request"
+        if msg['name'] is None or msg['name'] == '_ping': # "ping request"
             utils.send(connection,addr)
             connection.close()
         elif msg['name'] == '_help':
