@@ -55,5 +55,13 @@ def recv(connection,delim=b'\n',recv_buffer=4096,time_out=1,validate_exists=[]):
     raise timeout('Did not receive all client data in timeout period (%g seconds). Make sure terminated with "\\n"'%time_out)
 
 def send(connection,resp='',delim=b'\n',error=False):
-    resp = json.dumps({'response':resp,'error':error,'traceback':traceback.format_exc()})
+    # error -> either True/False or an Exception object
+    tb_formatted = ''
+    if error: # Anything but empty, 0, or False
+        if error is True:  # Use current exception to print traceback
+            exc = sys.exc_info()[2]
+        else:              # error is some Exception object, so use that
+            exc = error
+        tb_formatted = ''.join(traceback.format_exception(None,exc,exc.__traceback__))
+    resp = json.dumps({'response':resp,'error':bool(error),'traceback':tb_formatted})
     connection.sendall(bytes(urllib.quote_plus(resp),'utf-8')+delim)

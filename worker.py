@@ -37,9 +37,11 @@ def handleClient(client):
             utils.send(client,result)
             if not msg['keep_alive']:
                 break
-    except ModuleException:
-        logger.exception('Error from module (client: %s)'%addr[0])
-        utils.send(client,error=True)
+    except ModuleException as exc:
+        if exc.__cause__:
+            exc = exc.__cause__ # Unwrap ModuleException layer
+        logger.exception('Error from module (client: %s)'%addr[0],exc_info=(type(exc),exc,exc.__traceback__))
+        utils.send(client,error=exc)
     except IOError:
         logger.exception('Client lost (client: %s)'%addr[0])
     except:
