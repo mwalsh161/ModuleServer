@@ -40,7 +40,7 @@ def recv(connection,delim=b'\n',recv_buffer=4096,time_out=1,validate_exists=[]):
             if err.errno == 10035: # Timeout
                 time.sleep(0.01)
                 continue
-        assert data, 'Client disconnected while receiving.'
+        if not data: raise IOError('Client disconnected while receiving.')
         buffer += data
         if data[-1:] == delim:
             msg = buffer[0:-len(delim)].decode('utf-8')  # Remove delim
@@ -50,16 +50,17 @@ def recv(connection,delim=b'\n',recv_buffer=4096,time_out=1,validate_exists=[]):
             except Exception as err:
                 raise Exception('Failed to decode msg: "%s"'%(msg,))
             for field in validate_exists:
-                if field not in msg: raise BadRequest('"%s" missing'%field)
+                if field not in msg: raise BadRequest('"%s" field missing from request.'%field)
             return msg
-    raise timeout('Did not receive all client data in timeout period (%g seconds). Make sure terminated with "\\n"'%time_out)
+    raise timeout('Did not receive all client data in timeout period (%g seconds). Make sure terminated with "\\n".\nPartial message: "%s"'% \
+        (time_out,urllib.unquote_plus(buffer.decode('utf-8'))))
 
 def send(connection,resp='',delim=b'\n',error=False):
     # error -> either True/False or an Exception object
     tb_formatted = ''
     if error: # Anything but empty, 0, or False
         if error is True:  # Use current exception to print traceback
-            exc = sys.exc_info()[2]
+            exc = sys.exc_info()[1] # exc_info returns (type,exc,traceback)
         else:              # error is some Exception object, so use that
             exc = error
         tb_formatted = ''.join(traceback.format_exception(None,exc,exc.__traceback__))

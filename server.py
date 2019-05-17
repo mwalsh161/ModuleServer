@@ -4,7 +4,7 @@ import numpy as np
 from multiprocessing import Process, Queue
 from queue import Empty as QueueEmpty
 # Custom modules
-from . import utils, loggingProc, worker
+from ModuleServer import utils, loggingProc, worker
 
 help_text = \
 '''_help can be called as "name" in the server hello for available modules. \
@@ -257,6 +257,6 @@ def main(server_name,config_path,server_addr='localhost',server_port=36577,logle
 
 if __name__ == '__main__':
     BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(BASE_PATH,'test','server.config')
-    logfile = os.path.join(BASE_PATH,'test','test_server.log')
-    main('test',config_path,logfile=logfile)
+    config_path = os.path.join(BASE_PATH,'server_test','server.config')
+    logfile = os.path.join(BASE_PATH,'server_test','test_server.log')
+    main('server_test',config_path,logfile=logfile)

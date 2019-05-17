@@ -81,7 +81,7 @@ def dispatch(client,addr,function,args,**kwargs):
             result = getattr(INSTANCE,function)(*args)
     except utils.BadRequest as err:
         raise
-    except Exception as err: # Must be from the module, so wrap it to always handle
+    except Exception as err: # Must be from the module, so wrap it to always handle properly in handleClient
         raise ModuleException() from err
     return result
 
