@@ -1,6 +1,5 @@
 # Built-in modules
-import sys, os, time, json, logging, socket, traceback
-import numpy as np
+import os, time, json, logging, socket
 from multiprocessing import Process, Queue
 from queue import Empty as QueueEmpty
 # Custom modules
@@ -12,6 +11,12 @@ Likewise, _help can be called in request to workers as "function" fields \
 (note it is still necessary to include other two fields eventhough they will be ignored).
 
 _ping (or null) can be issued as well for "name" which will result in an echo of the client's IP.
+
+_reload_{URLENCODED_MODULE_NAME} can be issued to force a reload of the module specfied. \
+The URLENCODED_MODULE_NAME should be the the module name that has been urlencoded(plus). \
+If no module is specified, the server will force the config file to be reloaded instead.
+This syntax is to circumvent the lack of args in the server hello. Responds with the action \
+taken by the server.
 
 Workers and server will send responses that are urlencoded(plus) json strings:
   {"response":RESPONSE,"error":ERROR_STATUS,"traceback":traceback.format_exc()}
@@ -46,7 +51,7 @@ Client is expected to send urlencoded(plus) json strings with fields:
 ##
 
 ## General approach for procs:
-## Logging is handled by separate process with one shared queue
+## Logging is handled by a separate process with one shared queue
 ## Main for loop will monitor:
 ##   - the config file
 ##       - If changed, will reload config file and modify workers only if needed
@@ -73,12 +78,14 @@ Client is expected to send urlencoded(plus) json strings with fields:
 ##   - Once in the worker queue and ack sent, the server is done, and worker is entirely responsible
 ##   - If queue full, appropriate error is sent to client trying to connect
 ##   - Server will pong a ping without sending to worker (immediately closing connection after)
+#3   - Server will send help text and reload specified modules
 
 LOGLEVEL = None
 CONFIG_PATH = None
 LOG_QUEUE = None
 logger = None # setup in main()
-modules = {} # {module_name:(config,(process_handle,queue))} (set in reload_config)
+SERVER_WAIT_TIMEOUT = 0.5 # Period before checking modules
+MODULES = {} # {module_name:(config,(process_handle,queue))} (set in reload_config)
 
 def clean_config(configFile):
     # Remove names beginning with underscore (e.g. comments/examples)
@@ -98,12 +105,12 @@ def clean_config(configFile):
 
 def reload_config(modules,path):
     # Dictionary passed by pointer, so modify directly
-    logging.info('Config file modified')
+    logging.info('Reloading config file')
     try:
         with open(path,'rb') as fid:
             configFile = json.load(fid)
     except ValueError as err:
-        raise ValueError('Failed to load config file (no modules changed): %s'%err.message)
+        raise ValueError('Failed to load config file (no modules changed): %s'%str(err))
     clean_config(configFile)
     loaded_workers = list(modules)
     for name,config in configFile.items():
@@ -170,7 +177,7 @@ def load_module(name,config,old_module):
 
 def launchServer(addr,port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(1)
+    sock.settimeout(SERVER_WAIT_TIMEOUT)
     server_address=(addr,port)
     sock.bind(server_address)
     logger.critical('starting up on %s port %s'%server_address)
@@ -186,14 +193,28 @@ def handleClient(connection,addr):
             utils.send(connection,addr)
             connection.close()
         elif msg['name'] == '_help':
-            resp = 'Available modules: %s\n\n%s'%(', '.join(modules),help_text)
+            resp = 'Available modules: %s\n\n%s'%(', '.join(MODULES),help_text)
+            utils.send(connection,resp)
+            connection.close()
+        elif msg['name'][0:8] == '_reload_':
+            module_to_reload = utils.urllib.unquote_plus(msg['name'][8:])
+            if not module_to_reload:
+                resp = 'Reloaded config'
+                reload_config(MODULES,CONFIG_PATH)
+            elif module_to_reload in MODULES:
+                resp = 'Reloaded "%s"'%module_to_reload
+                _unload_module(module_to_reload,MODULES[module_to_reload][1])
+                MODULES.pop(module_to_reload)
+                reload_config(MODULES,CONFIG_PATH)
+            else:
+                resp = 'Failed to find module "%s"'%module_to_reload
             utils.send(connection,resp)
             connection.close()
         else:
-            if msg['name'] in modules:
-                if modules[msg['name']][1][0].is_alive():
+            if msg['name'] in MODULES:
+                if MODULES[msg['name']][1][0].is_alive():
                     utils.send(connection,'ack')
-                    modules[msg['name']][1][1].put((connection,addr))
+                    MODULES[msg['name']][1][1].put((connection,addr))
                 else:
                     raise Exception('%s worker is not alive!'%msg['name'])
             else:
@@ -235,11 +256,11 @@ def main(server_name,config_path,server_addr='localhost',server_port=36577,logle
                     # Check config file for changes
                     if utils.modified(CONFIG_PATH):
                         try:
-                            reload_config(modules,CONFIG_PATH)
+                            reload_config(MODULES,CONFIG_PATH)
                         except:
                             logger.exception('Failed to reload config')
                     # Check to make sure workers are still running
-                    check_modules(modules)
+                    check_modules(MODULES)
             except KeyboardInterrupt:
                 raise
             except:
@@ -249,7 +270,7 @@ def main(server_name,config_path,server_addr='localhost',server_port=36577,logle
     finally:
         sock.close() # No more connections
         try:
-            for name,props in modules.items():
+            for name,props in MODULES.items():
                 _unload_module(name,props[1])
         finally:
             LOG_QUEUE.put_nowait(None)
