@@ -9,6 +9,9 @@ The server monitors the workers and the workers monitor the module they are assi
 
 The server reads a config file to know which modules to load, and will monitor that config file for changes during runtime when it isn't busy. It will take care of loading/unloading modules based on the updated config.
 
+Diagram showing the general construction of the server:
+![structure](docs/structure.png)
+
 # Setup
 ## Server Setup
 You can create a `server.py` file as follows:
@@ -88,6 +91,13 @@ class bar:
     def fun1(self,*args):
         logger.debug('Called fun1 directly! Args: '+str(args))
         return 'No dispatching method necessary.'
+```
+
+Note, workers setup root logger properly, so modules can inherit and log easily at any level:
+```
+import logging
+logger = logging.getLogger(__name__)
+logger.info('testing123...')
 ```
 
 # API/Protocol
