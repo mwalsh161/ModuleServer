@@ -41,7 +41,6 @@ This just needs to be a JSON file that inform the server worker how to load and 
         "moduleA",
         "foo"
     ],
-    {
     "_moduleB": [
         "mymodules.moduleB",
         "bar",
