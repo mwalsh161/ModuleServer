@@ -12,6 +12,9 @@ Likewise, _help can be called in request to workers as "function" fields \
 
 _ping (or null) can be issued as well for "name" which will result in an echo of the client's IP.
 
+_get_modules will return a list of module names that are loaded. If you specify .*
+(e.g. _get_modules.msquared), only the modules that begin with * will be returned.
+
 _reload_{URLENCODED_MODULE_NAME} can be issued to force a reload of the module specfied. \
 The URLENCODED_MODULE_NAME should be the the module name that has been urlencoded(plus). \
 If no module is specified, the server will force the config file to be reloaded instead.
@@ -196,6 +199,9 @@ def handleClient(connection,addr):
             resp = 'Available modules: %s\n\n%s'%(', '.join(MODULES),help_text)
             utils.send(connection,resp)
             connection.close()
+        elif msg['name'][0:12] == '_get_modules':
+            match = msg['name'][13:]
+            resp = [mod for mod in MODULES.keys() if mod[0:len(match)]==match]
         elif msg['name'][0:8] == '_reload_':
             module_to_reload = utils.urllib.unquote_plus(msg['name'][8:])
             if not module_to_reload:
