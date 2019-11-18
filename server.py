@@ -202,6 +202,8 @@ def handleClient(connection,addr):
         elif msg['name'][0:12] == '_get_modules':
             match = msg['name'][13:]
             resp = [mod for mod in MODULES.keys() if mod[0:len(match)]==match]
+            utils.send(connection,resp)
+            connection.close()
         elif msg['name'][0:8] == '_reload_':
             module_to_reload = utils.urllib.unquote_plus(msg['name'][8:])
             if not module_to_reload:
