@@ -70,14 +70,14 @@ class client:
             logger.debug('sending "%s"' % handshake)
             sock.sendall((urllib.parse.quote_plus(handshake)+'\n').encode())
 
-            # Look for the response
+            # Look for the response and check if module exists
             resp = self.__recv(sock)
             logger.debug('received "%s"' % resp.strip())
-
+            assert resp == 'ack', '%s does not exist' % module
+            
             # Send data
             logger.debug('sending "%s"' % message)
             sock.sendall((urllib.parse.quote_plus(message)+'\n').encode())
-            logger.debug('sending "%s"' % (urllib.parse.quote_plus(message)+'\n').encode())
 
             # Look for the response
             resp = self.__recv(sock)
@@ -101,7 +101,6 @@ class client:
 
             # Look for the response
             resp = self.__recv(sock)
-            print(resp)
             logger.debug('received "%s"' % resp.strip())
 
         finally:
@@ -114,8 +113,6 @@ class client:
         sock = self.__connect_socket()
 
         resp = None
-        ip = None
-        port = 0
 
         try:
             # Send handshake
@@ -124,13 +121,11 @@ class client:
 
             # Look for the response
             resp = self.__recv(sock)
-            ip = resp[0]
-            port = resp[1]
-            logger.debug('received ["%s",%d]' % (ip, port))
+            logger.debug('received ["%s",%s]' % (resp[0], resp[1]))
 
         finally:
             self.__close_socket(sock)
-        return 'Client IP: %s, Port: %d' % (ip, port)
+        return resp
 
     def reload(self,module):
         assert isinstance(module,str), 'module must be a string'
