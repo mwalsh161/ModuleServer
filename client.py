@@ -70,10 +70,10 @@ class client:
             logger.debug('sending "%s"' % handshake)
             sock.sendall((urllib.parse.quote_plus(handshake)+'\n').encode())
 
-            # Look for the response and check if module exists
+            # Look for the response and check if acknowledgement is received
             resp = self.__recv(sock)
             logger.debug('received "%s"' % resp.strip())
-            assert resp == 'ack', '%s does not exist' % module
+            assert resp == 'ack', 'Wasn\'t able to get an acknowledgement from the server'
             
             # Send data
             logger.debug('sending "%s"' % message)
