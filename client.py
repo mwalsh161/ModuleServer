@@ -6,9 +6,15 @@ logging.basicConfig(filename='client_log.log',
 logger = logging.getLogger(__name__)
 
 class client:
+    # CLIENT connects with server.py on host machine to control
+    #  varoius pieces of equipment
+    #  Note, some hwserver operations could conveivably take longer than the
+    #  default timeout used here. If so, obj.connection.Timeout should be
+    #  adjusted appropriately
 
     DEFAULT_IP = 'localhost'
     DEFAULT_PORT = 36577
+    DEFAULT_TIMEOUT = 2
 
     def __init__(self,ip=DEFAULT_IP,port=DEFAULT_PORT):
         self.ip = ip
@@ -19,7 +25,7 @@ class client:
     def __connect_socket(self):
         # Create a TCP/IP socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(2)
+        sock.settimeout(self.DEFAULT_TIMEOUT)
 
         # Connect the socket to the port where the server is listening
         server_address = (self.ip, self.port)
@@ -44,6 +50,24 @@ class client:
                     raise Exception('Server Error: '+msg['response']+'\n'+msg['traceback'])
                 else:
                     return msg['response']
+    
+    def __handshake(self,handshake):
+        sock = self.__connect_socket()
+
+        resp = None
+
+        try:
+            # Send handshake
+            logger.debug('sending "%s"' % handshake)
+            sock.sendall((urllib.parse.quote_plus(handshake)+'\n').encode())
+
+            # Look for the response
+            resp = self.__recv(sock)
+            logger.debug('received "%s"' % resp)
+
+        finally:
+            self.__close_socket(sock)
+        return resp
 
     def com(self,module,funcname,*args):
         # Server always replies and always closes connection after msg
@@ -72,7 +96,7 @@ class client:
 
             # Look for the response and check if acknowledgement is received
             resp = self.__recv(sock)
-            logger.debug('received "%s"' % resp.strip())
+            logger.debug('received "%s"' % resp)
             assert resp == 'ack', 'Wasn\'t able to get an acknowledgement from the server'
             
             # Send data
@@ -81,7 +105,7 @@ class client:
 
             # Look for the response
             resp = self.__recv(sock)
-            logger.debug('received "%s"' % resp.strip())
+            logger.debug('received "%s"' % resp)
 
         finally:
             self.__close_socket(sock)
@@ -90,65 +114,23 @@ class client:
     def help(self):
         handshake = json.dumps({"name":"_help"})
 
-        sock = self.__connect_socket()
-
-        resp = None
-
-        try:
-            # Send handshake
-            logger.debug('sending "%s"' % handshake)
-            sock.sendall((urllib.parse.quote_plus(handshake)+'\n').encode())
-
-            # Look for the response
-            resp = self.__recv(sock)
-            logger.debug('received "%s"' % resp.strip())
-
-        finally:
-            self.__close_socket(sock)
-        return resp
+        return self.__handshake(handshake)
 
     def ping(self):
         handshake = json.dumps({"name":"_ping"})
 
-        sock = self.__connect_socket()
-
-        resp = None
-
-        try:
-            # Send handshake
-            logger.debug('sending "%s"' % handshake)
-            sock.sendall((urllib.parse.quote_plus(handshake)+'\n').encode())
-
-            # Look for the response
-            resp = self.__recv(sock)
-            logger.debug('received ["%s",%s]' % (resp[0], resp[1]))
-
-        finally:
-            self.__close_socket(sock)
-        return resp
+        return self.__handshake(handshake)
 
     def reload(self,module):
         assert isinstance(module,str), 'module must be a string'
 
         handshake = json.dumps({"name":"_reload_"+module})
 
-        sock = self.__connect_socket()
+        return self.__handshake(handshake)
 
-        resp = None
+    def get_modules(self,prefix=''):
+        assert isinstance(prefix,str), 'prefix must be a string'
 
-        try:
-            # Send handshake
-            logger.debug('sending "%s"' % handshake)
-            sock.sendall((urllib.parse.quote_plus(handshake)+'\n').encode())
+        handshake = json.dumps({"name":"_get_modules."+prefix})
 
-            # Look for the response
-            resp = self.__recv(sock)
-            logger.debug('received "%s"' % resp.strip())
-
-        finally:
-            self.__close_socket(sock)
-        return resp
-
-
-
-
+        return self.__handshake(handshake)
