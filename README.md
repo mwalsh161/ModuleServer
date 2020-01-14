@@ -117,17 +117,17 @@ ping(self) can be issued to ping the server to get the client's IP address and b
 print(client_1.ping())
 ```
 
-com(self,module,funcname,*args) can be called to communicate with a module and request it to perform a function. Here is an example of requesting "moduleB" and calling "fun1" with arguments ['ay',1,False,None].
+com(self, module, funcname, *args) can be called to communicate with a module and request it to perform a function. Here is an example of requesting "moduleB" to call "fun1" with arguments ['ay', 1, False, None].
 ```python
-resp = client_1.com('moduleB','fun1','ay',1,False,None)
+resp = client_1.com('moduleB', 'fun1', 'ay', 1, False, None)
 ```
 
 help(self) can be called to get server help text.
 
-get_modules(self,prefix='') will return a list of module names that are loaded. If you specify .*
-(e.g. _get_modules.msquared), only the modules that begin with * will be returned.
+get_modules(self, prefix='') will return a list of module names that are loaded. If you specify .*
+(e.g. get_modules('msquared')), only the modules that begin with * will be returned.
 
-reload(self,module) can be issued to force a reload of the module specfied.
+reload(self, module) can be issued to force a reload of the module specfied.
 
 # API/Protocol
 See [server.py](server.py) for more details. The general flow for the protocol is below:
