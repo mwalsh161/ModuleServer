@@ -37,9 +37,10 @@ def recv(connection,delim=b'\n',recv_buffer=4096,time_out=1,validate_exists=[]):
         except socket.timeout:
             raise
         except IOError as err:
-            if err.errno == 10035: # Timeout
+            if err.errno in [35, 10035]: # Resource temporarily unavailable, Timeout
                 time.sleep(0.01)
                 continue
+            raise
         if not data: raise IOError('Client disconnected while receiving.')
         buffer += data
         if data[-1:] == delim:
