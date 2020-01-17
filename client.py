@@ -19,13 +19,14 @@ class client:
     def __init__(self,host=DEFAULT_HOST,port=DEFAULT_PORT):
         self.host = host
         self.port = port
+        self.timeout = self.DEFAULT_TIMEOUT
         server_address = (host, port)
         logger.debug('Client instance created at %s port %s.' % server_address)
 
     def __connect_socket(self):
         # Create a TCP/IP socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(self.DEFAULT_TIMEOUT)
+        sock.settimeout(self.timeout)
 
         # Connect the socket to the port where the server is listening
         server_address = (self.host, self.port)
