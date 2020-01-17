@@ -49,7 +49,7 @@ class client:
                 msg = json.loads(buffer[0:-len(delim)])  # Remove delims
                 if msg['error']:
                     raise Exception('Server Error: '+msg['response']+\
-                        '\n\t'+msg['traceback'].replace('\n','\n\t'))
+                        '\n|'+msg['traceback'].strip().replace('\n','\n|'))
                 else:
                     return msg['response']
     
