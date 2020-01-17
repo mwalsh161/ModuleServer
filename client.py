@@ -47,7 +47,8 @@ class client:
             if data[-1] == delim:
                 msg = json.loads(buffer[0:-len(delim)])  # Remove delims
                 if msg['error']:
-                    raise Exception('Server Error: '+msg['response']+'\n'+msg['traceback'])
+                    raise Exception('Server Error: '+msg['response']+\
+                        '\n\t'+msg['traceback'].replace('\n','\n\t'))
                 else:
                     return msg['response']
     
