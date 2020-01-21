@@ -83,7 +83,7 @@ class client:
         # Prepare both parts of message in case one errors
         handshake = json.dumps({"name":module})
         message = json.dumps({"function":funcname,
-            "args":args,
+            "args":args[0],
             "keep_alive":False})
 
         sock = self.__connect_socket()
