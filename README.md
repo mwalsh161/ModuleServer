@@ -107,36 +107,37 @@ logger.info('testing123...')
 
 ## Clients
 
-Client connects with server.py on host machine to communicate with modules. Here is an example of creating a client.
+Client connects with [server.py]("https://github.com/mwalsh161/ModuleServer/blob/master/server.py" "View on github") on host machine to communicate with modules. Here is an example of creating a client. Also worth noting that [client.py]("https://github.com/mwalsh161/ModuleServer/blob/master/client.py" "View on github") uses [numpy-style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html#import-conventions "See formatting conventions").
 
 ```python
 from client import client
 myclient = client(host = 'localhost')
 ```
 
-The client.ping() method can be issued to ping the server to get the client's IP address and binding port.
+The `client.ping()` method can be issued to ping the server to get the client's IP address and binding port.
 
 ```python
 print(myclient.ping())
 ```
 
-The client.com(module, funcname, *args) method can be called to communicate with a module and request it to perform a function. Here is an example of requesting "moduleA" to call "foo" with arguments ['ay', 1, False, None].
+The `client.com(module, funcname='_help', *args)` method can be called to communicate with a module and request it to perform a function. Here is an example of requesting "moduleA" to call "foo" with arguments ['ay', 1, False, None].
 
 ```python
-resp = client_1.com('moduleA', 'foo', 'ay', 1, False, None)
-print(resp)
+resp = myclient.com('moduleA', 'foo', 'ay', 1, False, None)
+print(resp) #-> You successfully called the dispatching method!
 ```
 
-```python
-You successfully called the dispatching method!
-```
+The `client.help()` method can be called to get server help text.
 
-The client.help() method can be called to get server help text.
+The `client.get_modules(prefix='')` method will return a list of module names that are loaded. If you specify .*
+(e.g. `myclient.get_modules('msquared')`), only the modules that begin with * will be returned.
 
-The client.get_modules(prefix='') method will return a list of module names that are loaded. If you specify .*
-(e.g. myclient.get_modules('msquared')), only the modules that begin with * will be returned.
+The `client.reload(module)` method can be issued to force a reload of the module specified.
 
-The client.reload(module) method can be issued to force a reload of the module specfied.
+### Logging
+It is also worth noting, that you can configure how this module performs logging if you wish.
+To mess around with this module with basic logging enabled, you should run it directly: `python -i client.py`.
+If you import it, logging is not configured and left to the user to do so.
 
 # API/Protocol
 See [server.py](server.py) for more details. The general flow for the protocol is below:
