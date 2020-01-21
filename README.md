@@ -105,6 +105,39 @@ logger = logging.getLogger(__name__)
 logger.info('testing123...')
 ```
 
+## Clients
+
+Client connects with server.py on host machine to communicate with modules. Here is an example of creating a client.
+
+```python
+from client import client
+myclient = client(host = 'localhost')
+```
+
+The client.ping() method can be issued to ping the server to get the client's IP address and binding port.
+
+```python
+print(myclient.ping())
+```
+
+The client.com(module, funcname, *args) method can be called to communicate with a module and request it to perform a function. Here is an example of requesting "moduleA" to call "foo" with arguments ['ay', 1, False, None].
+
+```python
+resp = client_1.com('moduleA', 'foo', 'ay', 1, False, None)
+print(resp)
+```
+
+```python
+You successfully called the dispatching method!
+```
+
+The client.help() method can be called to get server help text.
+
+The client.get_modules(prefix='') method will return a list of module names that are loaded. If you specify .*
+(e.g. myclient.get_modules('msquared')), only the modules that begin with * will be returned.
+
+The client.reload(module) method can be issued to force a reload of the module specfied.
+
 # API/Protocol
 See [server.py](server.py) for more details. The general flow for the protocol is below:
 ![protocol](docs/protocol.png)
